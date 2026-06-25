@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatPanel } from '../components/ChatPanel';
 import { FeedView } from '../components/FeedView';
 import { MediaModal } from '../components/MediaModal';
+import { NotificationsPanel } from '../components/NotificationsPanel';
 import { ShareSheet } from '../components/ShareSheet';
 import { AppTab, TopNav } from '../components/TopNav';
 import { useBreakpoint } from '../hooks/useBreakpoint';
@@ -25,13 +26,14 @@ const TAB_LABELS: Record<AppTab, string> = {
 export function HomeScreen() {
   const { isDesktop } = useBreakpoint();
   const insets = useSafeAreaInsets();
-  const { logs, rooms, addComment, appendMessage } = useApp();
+  const { logs, rooms, addComment, appendMessage, unreadCount } = useApp();
 
   const [selected, setSelected] = useState<DailyLog | null>(null);
   const [shareTarget, setShareTarget] = useState<DailyLog | null>(null);
   const [tab, setTab] = useState<AppTab>('feed');
   const [activeRoomId, setActiveRoomId] = useState<string>(rooms[0].id);
   const [showUpload, setShowUpload] = useState(false);
+  const [showNotifs, setShowNotifs] = useState(false);
 
   // 항상 최신 상태에서 다시 찾아 댓글 반영
   const selectedLive = selected ? logs.find((l) => l.id === selected.id) ?? null : null;
@@ -107,6 +109,7 @@ export function HomeScreen() {
         />
       )}
       {showUpload && <UploadSheet onClose={() => setShowUpload(false)} />}
+      {showNotifs && <NotificationsPanel onClose={() => setShowNotifs(false)} />}
     </>
   );
 
@@ -114,7 +117,13 @@ export function HomeScreen() {
   if (isDesktop) {
     return (
       <View style={styles.root}>
-        <TopNav active={tab} onChange={setTab} onUpload={() => setShowUpload(true)} />
+        <TopNav
+          active={tab}
+          onChange={setTab}
+          onUpload={() => setShowUpload(true)}
+          onBell={() => setShowNotifs(true)}
+          unreadCount={unreadCount}
+        />
         <View style={styles.body}>
           {tab === 'feed' ? (
             <View style={styles.desktopRow}>
@@ -137,6 +146,8 @@ export function HomeScreen() {
         active={tab}
         onChange={setTab}
         onUpload={() => setShowUpload(true)}
+        onBell={() => setShowNotifs(true)}
+        unreadCount={unreadCount}
         showTabs={false}
       />
       <View style={styles.body}>{content(tab)}</View>

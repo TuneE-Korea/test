@@ -1,4 +1,4 @@
-import { ChatRoom, DailyLog, User } from '../types';
+import { AppNotification, ChatRoom, DailyLog, User } from '../types';
 
 // 백엔드(MinIO Presigned URL) 연동 전까지 사용하는 목업 데이터.
 // 실제 연동 시 fetchLogsByMonth / searchUsers 등 API 호출로 대체하면 된다.
@@ -185,6 +185,43 @@ export const mockChatRooms: ChatRoom[] = [
       { id: 'm2', text: '거의 도착!', mine: false },
       { id: 'm3', text: '오늘 모임 인증!', mine: false },
     ],
+  },
+];
+
+// ── 알림 ────────────────────────────────────────────
+// 실제로는 FCM / Web Push 로 수신한 알림. 여기선 목업.
+export const mockNotifications: AppNotification[] = [
+  {
+    id: 'n-1',
+    type: 'comment',
+    title: '새 댓글',
+    body: '부장님님이 "아침 커피 한 잔"에 댓글을 남겼어요.',
+    createdAt: iso(Y, M, 2, 9, 30),
+    read: false,
+  },
+  {
+    id: 'n-2',
+    type: 'friend',
+    title: '친구 요청',
+    body: '김민지님이 친구 요청을 보냈어요.',
+    createdAt: iso(Y, M, 1, 20, 12),
+    read: false,
+  },
+  {
+    id: 'n-3',
+    type: 'chat',
+    title: '동아리방',
+    body: '오늘 모임 인증!',
+    createdAt: iso(Y, M, 1, 18, 5),
+    read: true,
+  },
+  {
+    id: 'n-4',
+    type: 'system',
+    title: '스토리지 안내',
+    body: '저사양 서버 정책에 따라 업로드 전 자동 압축이 적용됩니다.',
+    createdAt: iso(Y, M, 1, 9, 0),
+    read: true,
   },
 ];
 

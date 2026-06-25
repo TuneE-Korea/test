@@ -14,15 +14,18 @@ import {
   me as defaultMe,
   mockChatRooms,
   mockLogs,
+  mockNotifications,
   mockUsers,
   QUOTA_LIMIT_BYTES,
 } from '../data/mockLogs';
 import {
+  AppNotification,
   ChatMessage,
   ChatRoom,
   DailyLog,
   Friend,
   FriendStatus,
+  NotificationType,
   User,
   Visibility,
 } from '../types';
@@ -58,6 +61,10 @@ interface AppState {
   quotaUsed: number;
   quotaLimit: number;
 
+  notifications: AppNotification[];
+  unreadCount: number;
+  markAllRead: () => void;
+
   // auth
   login: (emailOrId: string, password: string) => Promise<void>;
   signup: (form: SignupForm) => Promise<void>;
@@ -92,6 +99,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     for (const u of mockUsers) map[u.id] = initialFriendStatus[u.id] ?? 'none';
     return map;
   });
+  const [notifications, setNotifications] = useState<AppNotification[]>(mockNotifications);
+
+  // 로컬 알림 생성 (실제로는 FCM/Web Push 수신). 새 활동을 알림에 반영.
+  const pushNotification = useCallback(
+    (type: NotificationType, title: string, body: string) => {
+      setNotifications((prev) => [
+        { id: `n-${Date.now()}`, type, title, body, createdAt: new Date().toISOString(), read: false },
+        ...prev,
+      ]);
+    },
+    [],
+  );
+
+  const markAllRead = useCallback(
+    () => setNotifications((prev) => prev.map((n) => ({ ...n, read: true }))),
+    [],
+  );
 
   // 부팅 시 저장된 세션 복원 (JWT 토큰 보관 흉내)
   useEffect(() => {
@@ -217,8 +241,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setFriendStatus],
   );
   const acceptFriend = useCallback(
-    (userId: string) => setFriendStatus(userId, 'friend'),
-    [setFriendStatus],
+    (userId: string) => {
+      setFriendStatus(userId, 'friend');
+      const u = mockUsers.find((x) => x.id === userId);
+      if (u) pushNotification('friend', '친구 추가됨', `${u.name}님과 친구가 되었어요.`);
+    },
+    [setFriendStatus, pushNotification],
   );
   const removeFriend = useCallback(
     (userId: string) => setFriendStatus(userId, 'none'),
@@ -262,6 +290,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [logs],
   );
 
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications],
+  );
+
   const value: AppState = {
     booting,
     currentUser,
@@ -272,6 +305,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     friends,
     quotaUsed,
     quotaLimit: QUOTA_LIMIT_BYTES,
+    notifications,
+    unreadCount,
+    markAllRead,
     login,
     signup,
     logout,
