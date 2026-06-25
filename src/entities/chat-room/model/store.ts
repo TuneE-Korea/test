@@ -6,6 +6,9 @@ import type { ChatMessage, ChatRoom } from './types';
 
 interface ChatState {
   rooms: ChatRoom[];
+  /** 현재 열람 중인 방 id (UI 상태) */
+  activeRoomId: string;
+  setActiveRoom: (roomId: string) => void;
   appendMessage: (roomId: string, msg: ChatMessage) => void;
   /** 멤버 userId 들로 1:1 또는 그룹 채팅방 생성. 생성된 roomId 반환. */
   createRoom: (memberUserIds: string[]) => string;
@@ -13,6 +16,8 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>((set) => ({
   rooms: mockChatRooms,
+  activeRoomId: mockChatRooms[0]?.id ?? '',
+  setActiveRoom: (roomId) => set({ activeRoomId: roomId }),
 
   appendMessage: (roomId, msg) =>
     set((state) => ({
