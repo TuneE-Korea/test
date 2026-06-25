@@ -1,21 +1,42 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { colors, radius, spacing } from '../theme';
-import { ChatRoom } from '../types';
+import { ChatMessage, ChatRoom } from '../types';
 
 interface Props {
   rooms: ChatRoom[];
+  activeId: string;
+  onChangeActive: (id: string) => void;
+  onSend: (roomId: string, text: string) => void;
 }
 
 /**
- * 데스크탑 Split View 의 우측 영역(채팅).
- * 실시간 STOMP/SockJS 연동 전까지는 목업 UI 만 제공한다.
- * 미디어 모달이 이 영역을 가리지 않는다는 점을 보여주기 위한 자리.
+ * 데스크탑 Split View 우측 영역(채팅) 및 채팅 탭.
+ * - 좌측 방 목록 클릭 시 해당 방 대화로 전환(controlled)
+ * - 입력창에서 메시지 전송 가능
+ * - 공유된 미디어는 말풍선 안에 이미지로 표시
  */
-export function ChatPanel({ rooms }: Props) {
-  const [activeId, setActiveId] = useState(rooms[0]?.id);
+export function ChatPanel({ rooms, activeId, onChangeActive, onSend }: Props) {
+  const [draft, setDraft] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
   const activeRoom = rooms.find((r) => r.id === activeId) ?? rooms[0];
+
+  const submit = () => {
+    const text = draft.trim();
+    if (!text || !activeRoom) return;
+    onSend(activeRoom.id, text);
+    setDraft('');
+    requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+  };
 
   return (
     <View style={styles.root}>
@@ -26,7 +47,7 @@ export function ChatPanel({ rooms }: Props) {
             <Pressable
               key={r.id}
               style={[styles.room, activeId === r.id && styles.roomActive]}
-              onPress={() => setActiveId(r.id)}
+              onPress={() => onChangeActive(r.id)}
             >
               <View style={styles.avatar}>
                 <Text style={styles.avatarTxt}>{r.name.slice(0, 1)}</Text>
@@ -44,20 +65,52 @@ export function ChatPanel({ rooms }: Props) {
         <View style={styles.thread}>
           <Text style={styles.threadTitle}>{activeRoom?.name}</Text>
           <ScrollView
+            ref={scrollRef}
             style={styles.messages}
             contentContainerStyle={styles.messagesContent}
+            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
           >
             {activeRoom?.messages.map((m) => (
-              <View key={m.id} style={m.mine ? styles.bubbleOut : styles.bubbleIn}>
-                <Text style={styles.bubbleTxt}>{m.text}</Text>
-              </View>
+              <Bubble key={m.id} message={m} />
             ))}
           </ScrollView>
+
           <View style={styles.composer}>
-            <Text style={styles.composerHint}>메시지를 입력하세요…</Text>
+            <TextInput
+              style={styles.input}
+              value={draft}
+              onChangeText={setDraft}
+              placeholder="메시지를 입력하세요…"
+              placeholderTextColor={colors.textMuted}
+              onSubmitEditing={submit}
+              returnKeyType="send"
+              blurOnSubmit={false}
+            />
+            <Pressable style={styles.sendBtn} onPress={submit}>
+              <Text style={styles.sendTxt}>전송</Text>
+            </Pressable>
           </View>
         </View>
       </View>
+    </View>
+  );
+}
+
+function Bubble({ message }: { message: ChatMessage }) {
+  const mine = message.mine;
+  return (
+    <View style={mine ? styles.bubbleOut : styles.bubbleIn}>
+      {!!message.imageUri && (
+        <View style={styles.mediaWrap}>
+          <Image source={{ uri: message.imageUri }} style={styles.media} resizeMode="cover" />
+          {message.mediaType === 'video' && (
+            <View style={styles.playBadge}>
+              <Text style={styles.playIcon}>▶</Text>
+            </View>
+          )}
+        </View>
+      )}
+      {!!message.text && <Text style={styles.bubbleTxt}>{message.text}</Text>}
     </View>
   );
 }
@@ -119,12 +172,42 @@ const styles = StyleSheet.create({
     maxWidth: '80%',
   },
   bubbleTxt: { color: '#fff' },
+  mediaWrap: { width: 160, height: 160, borderRadius: radius.sm, overflow: 'hidden' },
+  media: { width: '100%', height: '100%' },
+  playBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playIcon: { color: '#fff', fontSize: 12, marginLeft: 2 },
   composer: {
+    flexDirection: 'row',
+    gap: 8,
     marginTop: spacing(2),
+    alignItems: 'center',
+  },
+  input: {
+    flex: 1,
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.pill,
     paddingHorizontal: spacing(4),
     paddingVertical: spacing(3),
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  composerHint: { color: colors.textMuted },
+  sendBtn: {
+    paddingHorizontal: spacing(4),
+    paddingVertical: spacing(3),
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    justifyContent: 'center',
+  },
+  sendTxt: { color: '#fff', fontWeight: '700' },
 });

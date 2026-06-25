@@ -10,12 +10,14 @@ import { AppTab, TopNav } from '../components/TopNav';
 import { mockChatRooms, mockLogs } from '../data/mockLogs';
 import { useBreakpoint } from '../hooks/useBreakpoint';
 import { colors, spacing } from '../theme';
-import { ChatRoom, DailyLog } from '../types';
+import { ChatMessage, ChatRoom, DailyLog } from '../types';
 
 export function HomeScreen() {
   const { isDesktop } = useBreakpoint();
   const insets = useSafeAreaInsets();
   const [logs, setLogs] = useState<DailyLog[]>(mockLogs);
+  const [rooms, setRooms] = useState<ChatRoom[]>(mockChatRooms);
+  const [activeRoomId, setActiveRoomId] = useState<string>(mockChatRooms[0].id);
   const [selected, setSelected] = useState<DailyLog | null>(null);
   const [shareTarget, setShareTarget] = useState<DailyLog | null>(null);
   const [tab, setTab] = useState<AppTab>('feed');
@@ -44,13 +46,42 @@ export function HomeScreen() {
     );
   }, []);
 
+  // 특정 방에 메시지 추가 (공유/전송 공통)
+  const appendMessage = useCallback((roomId: string, msg: ChatMessage) => {
+    setRooms((prev) =>
+      prev.map((r) =>
+        r.id === roomId
+          ? {
+              ...r,
+              messages: [...r.messages, msg],
+              lastMessage: msg.text ?? (msg.mediaType === 'video' ? '[동영상]' : '[사진]'),
+            }
+          : r,
+      ),
+    );
+  }, []);
+
   const handleShareToRoom = (room: ChatRoom, log: DailyLog) => {
-    // 실제로는 채팅 API 로 로그 카드 메시지를 전송한다.
+    // 공유한 미디어를 해당 방의 메시지로 추가
+    appendMessage(room.id, {
+      id: `m-${Date.now()}`,
+      imageUri: log.mediaType === 'video' ? log.thumbnailUri ?? log.uri : log.uri,
+      mediaType: log.mediaType,
+      text: log.caption,
+      mine: true,
+    });
     setShareTarget(null);
-    if (typeof window !== 'undefined') {
-      window.alert(`'${log.caption ?? '로그'}' 을(를) [${room.name}] 방으로 공유했어요.`);
-    }
+    setSelected(null); // 상세 모달 닫기
+    setActiveRoomId(room.id); // 공유한 방으로 전환
+    setTab('chat'); // 채팅 화면으로 이동 (데스크탑은 우측에 그대로 보임)
   };
+
+  const handleSend = useCallback(
+    (roomId: string, text: string) => {
+      appendMessage(roomId, { id: `m-${Date.now()}`, text, mine: true });
+    },
+    [appendMessage],
+  );
 
   // 피드 영역(캘린더 + 상세 모달). 모달은 이 컨테이너 내부에 오버레이되어
   // 데스크탑에서 우측 채팅 영역을 가리지 않는다.
@@ -74,10 +105,19 @@ export function HomeScreen() {
     </View>
   );
 
+  const Chat = (
+    <ChatPanel
+      rooms={rooms}
+      activeId={activeRoomId}
+      onChangeActive={setActiveRoomId}
+      onSend={handleSend}
+    />
+  );
+
   const shareSheet = shareTarget && (
     <ShareSheet
       log={shareTarget}
-      rooms={mockChatRooms}
+      rooms={rooms}
       onClose={() => setShareTarget(null)}
       onShareToRoom={handleShareToRoom}
     />
@@ -93,12 +133,10 @@ export function HomeScreen() {
             // 적용 예시 2: 좌측 60% 피드 / 우측 40% 채팅(반응창)
             <View style={styles.desktopRow}>
               <View style={styles.feedCol}>{Feed}</View>
-              <View style={styles.chatCol}>
-                <ChatPanel rooms={mockChatRooms} />
-              </View>
+              <View style={styles.chatCol}>{Chat}</View>
             </View>
           )}
-          {tab === 'chat' && <ChatPanel rooms={mockChatRooms} />}
+          {tab === 'chat' && Chat}
           {tab === 'profile' && Profile}
         </View>
         {shareSheet}
@@ -112,7 +150,7 @@ export function HomeScreen() {
       <TopNav active={tab} onChange={setTab} showTabs={false} />
       <View style={styles.body}>
         {tab === 'feed' && Feed}
-        {tab === 'chat' && <ChatPanel rooms={mockChatRooms} />}
+        {tab === 'chat' && Chat}
         {tab === 'profile' && Profile}
       </View>
 
