@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing } from '../theme';
 import { ChatRoom, DailyLog } from '../types';
@@ -12,6 +13,7 @@ interface Props {
 
 /** 미디어를 채팅방으로 공유하거나 링크를 복사하는 시트. */
 export function ShareSheet({ log, rooms, onClose, onShareToRoom }: Props) {
+  const insets = useSafeAreaInsets();
   const copyLink = () => {
     const url = `daylog://log/${log.id}`;
     // 웹에서는 클립보드 API 사용
@@ -24,7 +26,7 @@ export function ShareSheet({ log, rooms, onClose, onShareToRoom }: Props) {
   return (
     <View style={styles.root}>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
+      <View style={[styles.sheet, { paddingBottom: spacing(5) + insets.bottom }]}>
         <Text style={styles.title}>이 로그 공유</Text>
         <Text style={styles.sub}>채팅방으로 보내 대화 맥락을 만들어보세요.</Text>
 

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CalendarFeed } from '../components/CalendarFeed';
 import { ChatPanel } from '../components/ChatPanel';
@@ -13,6 +14,7 @@ import { ChatRoom, DailyLog } from '../types';
 
 export function HomeScreen() {
   const { isDesktop } = useBreakpoint();
+  const insets = useSafeAreaInsets();
   const [logs, setLogs] = useState<DailyLog[]>(mockLogs);
   const [selected, setSelected] = useState<DailyLog | null>(null);
   const [shareTarget, setShareTarget] = useState<DailyLog | null>(null);
@@ -114,7 +116,7 @@ export function HomeScreen() {
         {tab === 'profile' && Profile}
       </View>
 
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { paddingBottom: insets.bottom }]}>
         {(['feed', 'chat', 'profile'] as AppTab[]).map((t) => (
           <Pressable key={t} style={styles.tab} onPress={() => setTab(t)}>
             <Text style={[styles.tabTxt, tab === t && styles.tabActive]}>

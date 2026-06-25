@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing } from '../theme';
 
@@ -19,8 +20,9 @@ interface Props {
 
 /** 상단 네비게이션 바: 좌측 로고 + 우측 탭(피드/채팅/프로필). */
 export function TopNav({ active, onChange, showTabs = true }: Props) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { paddingTop: insets.top, height: 56 + insets.top }]}>
       <View style={styles.brand}>
         <View style={styles.logo}>
           <Text style={styles.logoTxt}>D</Text>
@@ -52,7 +54,6 @@ export function TopNav({ active, onChange, showTabs = true }: Props) {
 
 const styles = StyleSheet.create({
   bar: {
-    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
