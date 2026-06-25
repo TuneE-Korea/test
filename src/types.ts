@@ -1,6 +1,12 @@
-export type MediaType = 'image' | 'video';
+// [마이그레이션 진행 중]
+// - MediaType 은 shared/lib 로 이동
+// - 일상 로그 관련 타입(Visibility/LogComment/DailyLog/REACTION_EMOJIS)은 entities/daily-log 로 이동
+// 아래는 호환을 위한 재노출 + 아직 옮기지 않은 타입(User/Chat/Notification)들.
+import type { MediaType } from '@/shared/lib';
 
-export type Visibility = 'public' | 'friends' | 'private';
+export type { MediaType } from '@/shared/lib';
+export type { Visibility, LogComment, DailyLog } from '@/entities/daily-log';
+export { REACTION_EMOJIS } from '@/entities/daily-log';
 
 export interface User {
   id: string;
@@ -18,38 +24,6 @@ export interface Friend {
   user: User;
   status: FriendStatus;
 }
-
-export interface LogComment {
-  id: string;
-  author: string;
-  text: string;
-  createdAt: string; // ISO
-}
-
-// 하나의 "일상 로그". 캘린더의 한 셀에 매핑된다.
-export interface DailyLog {
-  id: string;
-  ownerId: string;
-  /** 게시된 시각 (ISO). 캘린더 배치 및 "YYYY년 MM월 DD일 HH시 mm분" 표기에 사용 */
-  takenAt: string;
-  mediaType: MediaType;
-  /** 이미지 또는 동영상 원본 URL */
-  uri: string;
-  /** 동영상 썸네일(포스터) URL. 없으면 첫 프레임을 사용 */
-  thumbnailUri?: string;
-  caption?: string;
-  visibility: Visibility;
-  /** 클라이언트 압축 후 추정 용량(byte). 스토리지 쿼터 합산에 사용 */
-  sizeBytes: number;
-  comments: LogComment[];
-  /** 이모지 반응. 키=이모지, 값=누른 사람 수 */
-  reactions?: Record<string, number>;
-  /** 내가 누른 이모지 목록 */
-  myReactions?: string[];
-}
-
-/** 반응 패널에 노출할 이모지 후보 */
-export const REACTION_EMOJIS = ['❤️', '😂', '👍', '🎉'] as const;
 
 export interface ChatMessage {
   id: string;

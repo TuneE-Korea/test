@@ -3,23 +3,15 @@ import {
   ActivityIndicator,
   NativeScrollEvent,
   NativeSyntheticEvent,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
-import { formatKoreanTimestamp } from '../dateUtils';
-import { colors, radius, spacing } from '../theme';
-import { DailyLog, Visibility } from '../types';
-import { MediaView } from './MediaView';
+import { DailyLog, LogCard } from '@/entities/daily-log';
 
-const VIS_LABEL: Record<Visibility, string> = {
-  public: '🌐 전체 공개',
-  friends: '👥 친구 공개',
-  private: '🔒 나만 보기',
-};
+import { colors, spacing } from '../theme';
 
 const PAGE = 6;
 
@@ -66,19 +58,7 @@ export function TimelineList({
       scrollEventThrottle={16}
     >
       {visible.map((log) => (
-        <Pressable key={log.id} style={styles.card} onPress={() => onSelectLog(log)}>
-          <View style={styles.media}>
-            <MediaView log={log} mode="thumbnail" />
-          </View>
-          <View style={styles.meta}>
-            <Text style={styles.time}>{formatKoreanTimestamp(log.takenAt)}</Text>
-            {!!log.caption && <Text style={styles.caption}>{log.caption}</Text>}
-            <View style={styles.footer}>
-              <Text style={styles.vis}>{VIS_LABEL[log.visibility]}</Text>
-              <Text style={styles.comments}>💬 {log.comments.length}</Text>
-            </View>
-          </View>
-        </Pressable>
+        <LogCard key={log.id} log={log} onPress={() => onSelectLog(log)} />
       ))}
 
       {loading && (
@@ -95,25 +75,6 @@ export function TimelineList({
 
 const styles = StyleSheet.create({
   content: { padding: spacing(3), gap: spacing(4), paddingBottom: spacing(8) },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  media: { width: '100%', aspectRatio: 1, backgroundColor: '#000' },
-  meta: { padding: spacing(4) },
-  time: { color: colors.textMuted, fontSize: 13 },
-  caption: { color: colors.text, fontSize: 16, fontWeight: '600', marginTop: 4 },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing(3),
-  },
-  vis: { color: colors.textMuted, fontSize: 12 },
-  comments: { color: colors.textMuted, fontSize: 12 },
   loader: { alignItems: 'center', gap: 6, paddingVertical: spacing(3) },
   loaderTxt: { color: colors.textMuted, fontSize: 12 },
   end: { color: colors.textMuted, fontSize: 12, textAlign: 'center', paddingVertical: spacing(3) },

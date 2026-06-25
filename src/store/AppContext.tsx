@@ -9,11 +9,12 @@ import {
   useState,
 } from 'react';
 
+import { DailyLog, NewLogInput, useDailyLogStore } from '@/entities/daily-log';
+
 import {
   initialFriendStatus,
   me as defaultMe,
   mockChatRooms,
-  mockLogs,
   mockNotifications,
   mockUsers,
   QUOTA_LIMIT_BYTES,
@@ -22,12 +23,10 @@ import {
   AppNotification,
   ChatMessage,
   ChatRoom,
-  DailyLog,
   Friend,
   FriendStatus,
   NotificationType,
   User,
-  Visibility,
 } from '../types';
 
 const STORAGE_KEY = 'daylog.auth.v1';
@@ -37,15 +36,6 @@ interface SignupForm {
   studentId: string;
   name: string;
   password: string;
-}
-
-interface NewLogInput {
-  uri: string;
-  mediaType: DailyLog['mediaType'];
-  thumbnailUri?: string;
-  caption?: string;
-  visibility: Visibility;
-  sizeBytes: number;
 }
 
 interface AppState {
@@ -93,7 +83,11 @@ const AppContext = createContext<AppState | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [booting, setBooting] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [logs, setLogs] = useState<DailyLog[]>(mockLogs);
+  // 로그 상태/액션은 entities/daily-log 의 zustand 스토어가 단일 소스로 보유한다.
+  const logs = useDailyLogStore((s) => s.logs);
+  const addLog = useDailyLogStore((s) => s.addLog);
+  const addComment = useDailyLogStore((s) => s.addComment);
+  const toggleReaction = useDailyLogStore((s) => s.toggleReaction);
   const [rooms, setRooms] = useState<ChatRoom[]>(mockChatRooms);
   const [friends, setFriends] = useState<Record<string, FriendStatus>>(() => {
     const map: Record<string, FriendStatus> = {};
@@ -178,52 +172,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrentUser(null);
     await persist(null);
   }, [persist]);
-
-  const addLog = useCallback((input: NewLogInput) => {
-    const log: DailyLog = {
-      id: `log-${Date.now()}`,
-      ownerId: 'me',
-      takenAt: new Date().toISOString(),
-      comments: [],
-      ...input,
-    };
-    setLogs((prev) => [log, ...prev]);
-  }, []);
-
-  const addComment = useCallback((logId: string, text: string) => {
-    setLogs((prev) =>
-      prev.map((l) =>
-        l.id === logId
-          ? {
-              ...l,
-              comments: [
-                ...l.comments,
-                { id: `c-${Date.now()}`, author: '나', text, createdAt: new Date().toISOString() },
-              ],
-            }
-          : l,
-      ),
-    );
-  }, []);
-
-  // 이모지 반응 토글 (내가 이미 누른 이모지면 취소).
-  const toggleReaction = useCallback((logId: string, emoji: string) => {
-    setLogs((prev) =>
-      prev.map((l) => {
-        if (l.id !== logId) return l;
-        const mine = l.myReactions ?? [];
-        const counts = { ...(l.reactions ?? {}) };
-        const has = mine.includes(emoji);
-        counts[emoji] = Math.max(0, (counts[emoji] ?? 0) + (has ? -1 : 1));
-        if (counts[emoji] === 0) delete counts[emoji];
-        return {
-          ...l,
-          reactions: counts,
-          myReactions: has ? mine.filter((e) => e !== emoji) : [...mine, emoji],
-        };
-      }),
-    );
-  }, []);
 
   const appendMessage = useCallback((roomId: string, msg: ChatMessage) => {
     setRooms((prev) =>
