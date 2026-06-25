@@ -48,7 +48,7 @@ export function MediaModal({ log, onClose, onShare }: Props) {
               <Text style={styles.closeTxt}>✕</Text>
             </Pressable>
 
-            {/* 미디어 위에 게시 날짜를 큰 흰 글씨로 (화면을 많이 가리지 않게 하단 정렬) */}
+            {/* 미디어 위에 게시 날짜를 큰 흰 글씨로 (미디어 중앙 정렬) */}
             <View style={styles.dateOverlay} pointerEvents="none">
               <Text style={styles.dateText}>{formatKoreanTimestamp(log.takenAt)}</Text>
             </View>
@@ -130,15 +130,16 @@ const styles = StyleSheet.create({
   },
   closeTxt: { color: '#fff', fontSize: 16 },
   dateOverlay: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 16,
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
   },
   dateText: {
     color: '#fff',
     fontSize: 26,
     fontWeight: '800',
+    textAlign: 'center',
     // 밝은 배경 위에서도 읽히도록 그림자
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 0, height: 1 },
