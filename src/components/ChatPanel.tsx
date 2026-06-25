@@ -14,7 +14,8 @@ interface Props {
  * 미디어 모달이 이 영역을 가리지 않는다는 점을 보여주기 위한 자리.
  */
 export function ChatPanel({ rooms }: Props) {
-  const [active, setActive] = useState(rooms[0]?.id);
+  const [activeId, setActiveId] = useState(rooms[0]?.id);
+  const activeRoom = rooms.find((r) => r.id === activeId) ?? rooms[0];
 
   return (
     <View style={styles.root}>
@@ -24,8 +25,8 @@ export function ChatPanel({ rooms }: Props) {
           {rooms.map((r) => (
             <Pressable
               key={r.id}
-              style={[styles.room, active === r.id && styles.roomActive]}
-              onPress={() => setActive(r.id)}
+              style={[styles.room, activeId === r.id && styles.roomActive]}
+              onPress={() => setActiveId(r.id)}
             >
               <View style={styles.avatar}>
                 <Text style={styles.avatarTxt}>{r.name.slice(0, 1)}</Text>
@@ -41,12 +42,17 @@ export function ChatPanel({ rooms }: Props) {
         </ScrollView>
 
         <View style={styles.thread}>
-          <View style={styles.bubbleIn}>
-            <Text style={styles.bubbleTxt}>점심 먹고 와요</Text>
-          </View>
-          <View style={styles.bubbleOut}>
-            <Text style={styles.bubbleTxt}>죄송합니다..</Text>
-          </View>
+          <Text style={styles.threadTitle}>{activeRoom?.name}</Text>
+          <ScrollView
+            style={styles.messages}
+            contentContainerStyle={styles.messagesContent}
+          >
+            {activeRoom?.messages.map((m) => (
+              <View key={m.id} style={m.mine ? styles.bubbleOut : styles.bubbleIn}>
+                <Text style={styles.bubbleTxt}>{m.text}</Text>
+              </View>
+            ))}
+          </ScrollView>
           <View style={styles.composer}>
             <Text style={styles.composerHint}>메시지를 입력하세요…</Text>
           </View>
@@ -84,7 +90,18 @@ const styles = StyleSheet.create({
   avatarTxt: { color: colors.primary, fontWeight: '700' },
   roomName: { color: colors.text, fontWeight: '600' },
   roomLast: { color: colors.textMuted, fontSize: 12 },
-  thread: { flex: 1, padding: spacing(3), justifyContent: 'flex-end', gap: 8 },
+  thread: { flex: 1, padding: spacing(3) },
+  threadTitle: {
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 15,
+    paddingBottom: spacing(2),
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing(2),
+  },
+  messages: { flex: 1 },
+  messagesContent: { justifyContent: 'flex-end', flexGrow: 1, gap: 8 },
   bubbleIn: {
     alignSelf: 'flex-start',
     backgroundColor: colors.surfaceAlt,

@@ -109,7 +109,35 @@ export const mockLogs: DailyLog[] = [
 ];
 
 export const mockChatRooms: ChatRoom[] = [
-  { id: 'room-1', name: '부장님', lastMessage: '점심 먹고 와요' },
-  { id: 'room-2', name: '개발팀', lastMessage: '죄송합니다..' },
-  { id: 'room-3', name: '동아리방', lastMessage: '오늘 모임 인증!' },
+  {
+    id: 'room-1',
+    name: '부장님',
+    lastMessage: '점심 먹고 와요',
+    messages: [
+      { id: 'm1', text: '오늘 점심 같이 할까?', mine: false },
+      { id: 'm2', text: '좋아요!', mine: true },
+      { id: 'm3', text: '점심 먹고 와요', mine: false },
+    ],
+  },
+  {
+    id: 'room-2',
+    name: '개발팀',
+    lastMessage: '죄송합니다..',
+    messages: [
+      { id: 'm1', text: '배포 언제 되나요?', mine: false },
+      { id: 'm2', text: '곧 올리겠습니다', mine: true },
+      { id: 'm3', text: '버그 하나 더 나왔어요', mine: false },
+      { id: 'm4', text: '죄송합니다..', mine: true },
+    ],
+  },
+  {
+    id: 'room-3',
+    name: '동아리방',
+    lastMessage: '오늘 모임 인증!',
+    messages: [
+      { id: 'm1', text: '다들 어디쯤?', mine: true },
+      { id: 'm2', text: '거의 도착!', mine: false },
+      { id: 'm3', text: '오늘 모임 인증!', mine: false },
+    ],
+  },
 ];

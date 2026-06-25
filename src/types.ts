@@ -22,8 +22,16 @@ export interface DailyLog {
   comments: LogComment[];
 }
 
+export interface ChatMessage {
+  id: string;
+  text: string;
+  /** 내가 보낸 메시지인지 (말풍선 좌/우 정렬) */
+  mine: boolean;
+}
+
 export interface ChatRoom {
   id: string;
   name: string;
   lastMessage: string;
+  messages: ChatMessage[];
 }
