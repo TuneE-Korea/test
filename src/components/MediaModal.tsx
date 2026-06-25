@@ -1,12 +1,7 @@
-import { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -21,42 +16,28 @@ interface Props {
   /** 데스크탑에서 모달이 우측 채팅 영역을 가리지 않도록 부모가 영역을 제한한다 */
   onClose: () => void;
   onShare: (log: DailyLog) => void;
-  onAddComment: (logId: string, text: string) => void;
 }
 
 /**
  * 미디어 상세 모달.
  * - 동영상은 재생, 이미지는 표시
- * - 상단에 게시 타임라인(YYYY년 MM월 DD일 HH시 mm분)
- * - 미디어 위에 사용자가 할 말(댓글) 게시 가능
- * - 공유 버튼 제공
+ * - 미디어 위에 게시 날짜를 큰 흰 글씨로 표기 (YYYY년 MM월 DD일 HH시 mm분)
+ * - 이모지 반응 / 공유만 가능 (댓글 없음)
  *
  * 이 컴포넌트는 화면 전체가 아니라 부모(피드 영역) 내부를 채우는 오버레이로 동작한다.
  * 따라서 데스크탑 Split View 에서 우측 채팅방을 가리지 않는다.
  */
-export function MediaModal({ log, onClose, onShare, onAddComment }: Props) {
+export function MediaModal({ log, onClose, onShare }: Props) {
   const { toggleReaction } = useApp();
-  const [draft, setDraft] = useState('');
   const reactions = log.reactions ?? {};
   const myReactions = log.myReactions ?? [];
-
-  const submit = () => {
-    const text = draft.trim();
-    if (!text) return;
-    onAddComment(log.id, text);
-    setDraft('');
-  };
 
   return (
     <View style={styles.root}>
       {/* 배경(딤). 누르면 닫힘 — 단, 부모 영역 안에서만 덮인다 */}
       <Pressable style={styles.backdrop} onPress={onClose} />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.cardWrap}
-        pointerEvents="box-none"
-      >
+      <View style={styles.cardWrap} pointerEvents="box-none">
         <View style={styles.card}>
           {/* 미디어 영역 */}
           <View style={styles.media}>
@@ -67,81 +48,47 @@ export function MediaModal({ log, onClose, onShare, onAddComment }: Props) {
               <Text style={styles.closeTxt}>✕</Text>
             </Pressable>
 
-            {/* 미디어 위에 게시된 사용자의 한마디(가장 최근 댓글) */}
-            {log.comments.length > 0 && (
-              <View style={styles.overlayCaption} pointerEvents="none">
-                <Text style={styles.overlayAuthor}>
-                  {log.comments[log.comments.length - 1].author}
-                </Text>
-                <Text style={styles.overlayText}>
-                  {log.comments[log.comments.length - 1].text}
-                </Text>
-              </View>
-            )}
+            {/* 미디어 위에 게시 날짜를 큰 흰 글씨로 (화면을 많이 가리지 않게 하단 정렬) */}
+            <View style={styles.dateOverlay} pointerEvents="none">
+              <Text style={styles.dateText}>{formatKoreanTimestamp(log.takenAt)}</Text>
+            </View>
           </View>
 
           {/* 메타 + 인터랙션 */}
           <View style={styles.body}>
-            <View style={styles.metaRow}>
-              <View style={{ flex: 1 }}>
-                {!!log.caption && <Text style={styles.caption}>{log.caption}</Text>}
-                {/* 요구 표기: YYYY년 MM월 DD일 HH시 mm분 */}
-                <Text style={styles.timestamp}>{formatKoreanTimestamp(log.takenAt)}</Text>
+            {!!log.caption && <Text style={styles.caption}>{log.caption}</Text>}
+
+            <View style={styles.actionRow}>
+              {/* 반응(이모지) */}
+              <View style={styles.reactions}>
+                {REACTION_EMOJIS.map((e) => {
+                  const on = myReactions.includes(e);
+                  const count = reactions[e] ?? 0;
+                  return (
+                    <Pressable
+                      key={e}
+                      style={[styles.reaction, on && styles.reactionOn]}
+                      onPress={() => toggleReaction(log.id, e)}
+                    >
+                      <Text style={styles.reactionEmoji}>{e}</Text>
+                      {count > 0 && (
+                        <Text style={[styles.reactionCount, on && styles.reactionCountOn]}>
+                          {count}
+                        </Text>
+                      )}
+                    </Pressable>
+                  );
+                })}
               </View>
+
+              {/* 공유 */}
               <Pressable style={styles.shareBtn} onPress={() => onShare(log)}>
                 <Text style={styles.shareTxt}>↗ 공유</Text>
               </Pressable>
             </View>
-
-            <View style={styles.reactions}>
-              {REACTION_EMOJIS.map((e) => {
-                const on = myReactions.includes(e);
-                const count = reactions[e] ?? 0;
-                return (
-                  <Pressable
-                    key={e}
-                    style={[styles.reaction, on && styles.reactionOn]}
-                    onPress={() => toggleReaction(log.id, e)}
-                  >
-                    <Text style={styles.reactionEmoji}>{e}</Text>
-                    {count > 0 && (
-                      <Text style={[styles.reactionCount, on && styles.reactionCountOn]}>{count}</Text>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <ScrollView style={styles.comments} keyboardShouldPersistTaps="handled">
-              {log.comments.length === 0 ? (
-                <Text style={styles.empty}>첫 한마디를 남겨보세요.</Text>
-              ) : (
-                log.comments.map((c) => (
-                  <View key={c.id} style={styles.commentRow}>
-                    <Text style={styles.commentAuthor}>{c.author}</Text>
-                    <Text style={styles.commentText}>{c.text}</Text>
-                  </View>
-                ))
-              )}
-            </ScrollView>
-
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.input}
-                value={draft}
-                onChangeText={setDraft}
-                placeholder="이 순간에 할 말 남기기…"
-                placeholderTextColor={colors.textMuted}
-                onSubmitEditing={submit}
-                returnKeyType="send"
-              />
-              <Pressable style={styles.sendBtn} onPress={submit}>
-                <Text style={styles.sendTxt}>게시</Text>
-              </Pressable>
-            </View>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }
@@ -182,30 +129,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   closeTxt: { color: '#fff', fontSize: 16 },
-  overlayCaption: {
+  dateOverlay: {
     position: 'absolute',
-    left: 12,
-    bottom: 12,
-    right: 12,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing(3),
-    paddingVertical: spacing(2),
+    left: 16,
+    right: 16,
+    bottom: 16,
   },
-  overlayAuthor: { color: colors.primary, fontSize: 12, fontWeight: '700' },
-  overlayText: { color: '#fff', fontSize: 14 },
+  dateText: {
+    color: '#fff',
+    fontSize: 26,
+    fontWeight: '800',
+    // 밝은 배경 위에서도 읽히도록 그림자
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
   body: { padding: spacing(4) },
-  metaRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing(2) },
-  caption: { color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: 2 },
-  timestamp: { color: colors.textMuted, fontSize: 13 },
-  shareBtn: {
-    paddingHorizontal: spacing(3),
-    paddingVertical: spacing(2),
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.pill,
+  caption: { color: colors.text, fontSize: 16, fontWeight: '600', marginBottom: spacing(3) },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  shareTxt: { color: colors.primary, fontSize: 13, fontWeight: '700' },
-  reactions: { flexDirection: 'row', gap: 8, marginTop: spacing(1) },
+  reactions: { flexDirection: 'row', gap: 8, flex: 1 },
   reaction: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -220,27 +166,12 @@ const styles = StyleSheet.create({
   reactionEmoji: { fontSize: 16 },
   reactionCount: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
   reactionCountOn: { color: colors.primary },
-  comments: { maxHeight: 140, marginVertical: spacing(2) },
-  empty: { color: colors.textMuted, fontSize: 13, paddingVertical: spacing(2) },
-  commentRow: { flexDirection: 'row', gap: 8, paddingVertical: spacing(1) },
-  commentAuthor: { color: colors.primary, fontSize: 13, fontWeight: '700' },
-  commentText: { color: colors.text, fontSize: 13, flex: 1 },
-  inputRow: { flexDirection: 'row', gap: 8, marginTop: spacing(1) },
-  input: {
-    flex: 1,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.pill,
+  shareBtn: {
     paddingHorizontal: spacing(4),
     paddingVertical: spacing(2),
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  sendBtn: {
-    paddingHorizontal: spacing(4),
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primarySoft,
     borderRadius: radius.pill,
+    marginLeft: spacing(2),
   },
-  sendTxt: { color: '#fff', fontWeight: '700' },
+  shareTxt: { color: colors.primary, fontSize: 13, fontWeight: '700' },
 });
