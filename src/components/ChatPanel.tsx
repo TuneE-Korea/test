@@ -18,6 +18,13 @@ interface Props {
   activeId: string;
   onChangeActive: (id: string) => void;
   onSend: (roomId: string, text: string) => void;
+  /** 상대가 입력 중인 방 id (실시간 흉내) */
+  typingRoomId?: string | null;
+}
+
+// 온라인 여부 흉내 (방 id 기반 안정적 값)
+function isOnline(id: string) {
+  return [...id].reduce((s, c) => s + c.charCodeAt(0), 0) % 2 === 0;
 }
 
 /**
@@ -26,7 +33,7 @@ interface Props {
  * - 입력창에서 메시지 전송 가능
  * - 공유된 미디어는 말풍선 안에 이미지로 표시
  */
-export function ChatPanel({ rooms, activeId, onChangeActive, onSend }: Props) {
+export function ChatPanel({ rooms, activeId, onChangeActive, onSend, typingRoomId }: Props) {
   const [draft, setDraft] = useState('');
   const [showNew, setShowNew] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -58,11 +65,12 @@ export function ChatPanel({ rooms, activeId, onChangeActive, onSend }: Props) {
             >
               <View style={styles.avatar}>
                 <Text style={styles.avatarTxt}>{r.name.slice(0, 1)}</Text>
+                {isOnline(r.id) && <View style={styles.onlineDot} />}
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.roomName}>{r.name}</Text>
                 <Text style={styles.roomLast} numberOfLines={1}>
-                  {r.lastMessage}
+                  {typingRoomId === r.id ? '입력 중…' : r.lastMessage}
                 </Text>
               </View>
             </Pressable>
@@ -70,7 +78,19 @@ export function ChatPanel({ rooms, activeId, onChangeActive, onSend }: Props) {
         </ScrollView>
 
         <View style={styles.thread}>
-          <Text style={styles.threadTitle}>{activeRoom?.name}</Text>
+          <View style={styles.threadHead}>
+            <Text style={styles.threadTitle}>{activeRoom?.name}</Text>
+            {activeRoom && (
+              <View style={styles.presence}>
+                <View
+                  style={[styles.presenceDot, !isOnline(activeRoom.id) && styles.presenceOff]}
+                />
+                <Text style={styles.presenceTxt}>
+                  {isOnline(activeRoom.id) ? '온라인' : '오프라인'}
+                </Text>
+              </View>
+            )}
+          </View>
           <ScrollView
             ref={scrollRef}
             style={styles.messages}
@@ -80,6 +100,11 @@ export function ChatPanel({ rooms, activeId, onChangeActive, onSend }: Props) {
             {activeRoom?.messages.map((m) => (
               <Bubble key={m.id} message={m} />
             ))}
+            {typingRoomId === activeRoom?.id && (
+              <View style={styles.typing}>
+                <Text style={styles.typingTxt}>상대가 입력 중…</Text>
+              </View>
+            )}
           </ScrollView>
 
           <View style={styles.composer}>
@@ -167,18 +192,42 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarTxt: { color: colors.primary, fontWeight: '700' },
+  onlineDot: {
+    position: 'absolute',
+    right: -1,
+    bottom: -1,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: '#22c55e',
+    borderWidth: 2,
+    borderColor: colors.bg,
+  },
   roomName: { color: colors.text, fontWeight: '600' },
   roomLast: { color: colors.textMuted, fontSize: 12 },
   thread: { flex: 1, padding: spacing(3) },
-  threadTitle: {
-    color: colors.text,
-    fontWeight: '700',
-    fontSize: 15,
+  threadHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingBottom: spacing(2),
     borderBottomWidth: 1,
     borderColor: colors.border,
     marginBottom: spacing(2),
   },
+  threadTitle: { color: colors.text, fontWeight: '700', fontSize: 15 },
+  presence: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  presenceDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#22c55e' },
+  presenceOff: { backgroundColor: colors.textMuted },
+  presenceTxt: { color: colors.textMuted, fontSize: 12 },
+  typing: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing(3),
+    paddingVertical: spacing(2),
+  },
+  typingTxt: { color: colors.textMuted, fontSize: 13, fontStyle: 'italic' },
   messages: { flex: 1 },
   messagesContent: { justifyContent: 'flex-end', flexGrow: 1, gap: 8 },
   bubbleIn: {

@@ -73,6 +73,7 @@ interface AppState {
   // logs
   addLog: (input: NewLogInput) => void;
   addComment: (logId: string, text: string) => void;
+  toggleReaction: (logId: string, emoji: string) => void;
 
   // chat
   appendMessage: (roomId: string, msg: ChatMessage) => void;
@@ -205,6 +206,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  // 이모지 반응 토글 (내가 이미 누른 이모지면 취소).
+  const toggleReaction = useCallback((logId: string, emoji: string) => {
+    setLogs((prev) =>
+      prev.map((l) => {
+        if (l.id !== logId) return l;
+        const mine = l.myReactions ?? [];
+        const counts = { ...(l.reactions ?? {}) };
+        const has = mine.includes(emoji);
+        counts[emoji] = Math.max(0, (counts[emoji] ?? 0) + (has ? -1 : 1));
+        if (counts[emoji] === 0) delete counts[emoji];
+        return {
+          ...l,
+          reactions: counts,
+          myReactions: has ? mine.filter((e) => e !== emoji) : [...mine, emoji],
+        };
+      }),
+    );
+  }, []);
+
   const appendMessage = useCallback((roomId: string, msg: ChatMessage) => {
     setRooms((prev) =>
       prev.map((r) =>
@@ -313,6 +333,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     logout,
     addLog,
     addComment,
+    toggleReaction,
     appendMessage,
     createRoom,
     friendList,

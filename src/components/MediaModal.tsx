@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 
 import { formatKoreanTimestamp } from '../dateUtils';
+import { useApp } from '../store/AppContext';
 import { colors, radius, spacing } from '../theme';
-import { DailyLog } from '../types';
+import { DailyLog, REACTION_EMOJIS } from '../types';
 import { MediaView } from './MediaView';
 
 interface Props {
@@ -34,7 +35,10 @@ interface Props {
  * 따라서 데스크탑 Split View 에서 우측 채팅방을 가리지 않는다.
  */
 export function MediaModal({ log, onClose, onShare, onAddComment }: Props) {
+  const { toggleReaction } = useApp();
   const [draft, setDraft] = useState('');
+  const reactions = log.reactions ?? {};
+  const myReactions = log.myReactions ?? [];
 
   const submit = () => {
     const text = draft.trim();
@@ -87,6 +91,25 @@ export function MediaModal({ log, onClose, onShare, onAddComment }: Props) {
               <Pressable style={styles.shareBtn} onPress={() => onShare(log)}>
                 <Text style={styles.shareTxt}>↗ 공유</Text>
               </Pressable>
+            </View>
+
+            <View style={styles.reactions}>
+              {REACTION_EMOJIS.map((e) => {
+                const on = myReactions.includes(e);
+                const count = reactions[e] ?? 0;
+                return (
+                  <Pressable
+                    key={e}
+                    style={[styles.reaction, on && styles.reactionOn]}
+                    onPress={() => toggleReaction(log.id, e)}
+                  >
+                    <Text style={styles.reactionEmoji}>{e}</Text>
+                    {count > 0 && (
+                      <Text style={[styles.reactionCount, on && styles.reactionCountOn]}>{count}</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
             </View>
 
             <ScrollView style={styles.comments} keyboardShouldPersistTaps="handled">
@@ -182,6 +205,21 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   shareTxt: { color: colors.primary, fontSize: 13, fontWeight: '700' },
+  reactions: { flexDirection: 'row', gap: 8, marginTop: spacing(1) },
+  reaction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing(3),
+    paddingVertical: spacing(1),
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  reactionOn: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  reactionEmoji: { fontSize: 16 },
+  reactionCount: { color: colors.textMuted, fontSize: 13, fontWeight: '700' },
+  reactionCountOn: { color: colors.primary },
   comments: { maxHeight: 140, marginVertical: spacing(2) },
   empty: { color: colors.textMuted, fontSize: 13, paddingVertical: spacing(2) },
   commentRow: { flexDirection: 'row', gap: 8, paddingVertical: spacing(1) },

@@ -42,7 +42,14 @@ export interface DailyLog {
   /** 클라이언트 압축 후 추정 용량(byte). 스토리지 쿼터 합산에 사용 */
   sizeBytes: number;
   comments: LogComment[];
+  /** 이모지 반응. 키=이모지, 값=누른 사람 수 */
+  reactions?: Record<string, number>;
+  /** 내가 누른 이모지 목록 */
+  myReactions?: string[];
 }
+
+/** 반응 패널에 노출할 이모지 후보 */
+export const REACTION_EMOJIS = ['❤️', '😂', '👍', '🎉'] as const;
 
 export interface ChatMessage {
   id: string;
