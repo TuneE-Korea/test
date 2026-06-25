@@ -44,3 +44,13 @@ export function isToday(year: number, month0: number, day: number) {
   const t = new Date();
   return t.getFullYear() === year && t.getMonth() === month0 && t.getDate() === day;
 }
+
+/** byte 를 사람이 읽기 쉬운 단위로 (예: 12.3MB) */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes}B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(0)}KB`;
+  const mb = kb / 1024;
+  if (mb < 1024) return `${mb.toFixed(1)}MB`;
+  return `${(mb / 1024).toFixed(2)}GB`;
+}

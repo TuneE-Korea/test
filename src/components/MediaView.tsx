@@ -28,12 +28,17 @@ export function MediaView({ log, mode }: Props) {
   return <Image source={{ uri: log.uri }} style={styles.fill} resizeMode="contain" />;
 }
 
-// 셀: 항상 정적 이미지 (동영상은 thumbnailUri, 없으면 원본 uri)
+// 셀: 항상 정적 이미지. 동영상은 썸네일(thumbnailUri)이 있을 때만 이미지로,
+// 없으면 동영상 URL 을 Image 에 넣어 깨지지 않도록 회색 placeholder 처리.
 function ThumbnailMedia({ log }: { log: DailyLog }) {
-  const poster = log.mediaType === 'video' ? log.thumbnailUri ?? log.uri : log.uri;
+  const poster = log.mediaType === 'image' ? log.uri : log.thumbnailUri;
   return (
-    <View style={StyleSheet.absoluteFill}>
-      <Image source={{ uri: poster }} style={styles.fill} resizeMode="cover" />
+    <View style={[StyleSheet.absoluteFill, styles.placeholder]}>
+      {poster ? (
+        <Image source={{ uri: poster }} style={styles.fill} resizeMode="cover" />
+      ) : (
+        <Text style={styles.placeholderIcon}>🎬</Text>
+      )}
       {log.mediaType === 'video' && (
         <View style={styles.playBadge}>
           <Text style={styles.playIcon}>▶</Text>
@@ -63,6 +68,12 @@ function FullVideo({ log }: { log: DailyLog }) {
 
 const styles = StyleSheet.create({
   fill: { width: '100%', height: '100%' },
+  placeholder: {
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placeholderIcon: { fontSize: 22 },
   playBadge: {
     position: 'absolute',
     top: 6,

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,62 +7,36 @@ import { ChatPanel } from '../components/ChatPanel';
 import { MediaModal } from '../components/MediaModal';
 import { ShareSheet } from '../components/ShareSheet';
 import { AppTab, TopNav } from '../components/TopNav';
-import { mockChatRooms, mockLogs } from '../data/mockLogs';
 import { useBreakpoint } from '../hooks/useBreakpoint';
+import { useApp } from '../store/AppContext';
 import { colors, spacing } from '../theme';
-import { ChatMessage, ChatRoom, DailyLog } from '../types';
+import { ChatRoom, DailyLog } from '../types';
+import { FriendsScreen } from './FriendsScreen';
+import { ProfileScreen } from './ProfileScreen';
+import { UploadSheet } from './UploadSheet';
+
+const TAB_LABELS: Record<AppTab, string> = {
+  feed: '피드',
+  chat: '채팅',
+  friends: '친구',
+  profile: '프로필',
+};
 
 export function HomeScreen() {
   const { isDesktop } = useBreakpoint();
   const insets = useSafeAreaInsets();
-  const [logs, setLogs] = useState<DailyLog[]>(mockLogs);
-  const [rooms, setRooms] = useState<ChatRoom[]>(mockChatRooms);
-  const [activeRoomId, setActiveRoomId] = useState<string>(mockChatRooms[0].id);
+  const { logs, rooms, addComment, appendMessage } = useApp();
+
   const [selected, setSelected] = useState<DailyLog | null>(null);
   const [shareTarget, setShareTarget] = useState<DailyLog | null>(null);
   const [tab, setTab] = useState<AppTab>('feed');
+  const [activeRoomId, setActiveRoomId] = useState<string>(rooms[0].id);
+  const [showUpload, setShowUpload] = useState(false);
 
-  // 현재 선택된 로그를 항상 최신 상태(logs)에서 다시 찾아 댓글 반영
+  // 항상 최신 상태에서 다시 찾아 댓글 반영
   const selectedLive = selected ? logs.find((l) => l.id === selected.id) ?? null : null;
 
-  const addComment = useCallback((logId: string, text: string) => {
-    setLogs((prev) =>
-      prev.map((l) =>
-        l.id === logId
-          ? {
-              ...l,
-              comments: [
-                ...l.comments,
-                {
-                  id: `c-${Date.now()}`,
-                  author: '나',
-                  text,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
-          : l,
-      ),
-    );
-  }, []);
-
-  // 특정 방에 메시지 추가 (공유/전송 공통)
-  const appendMessage = useCallback((roomId: string, msg: ChatMessage) => {
-    setRooms((prev) =>
-      prev.map((r) =>
-        r.id === roomId
-          ? {
-              ...r,
-              messages: [...r.messages, msg],
-              lastMessage: msg.text ?? (msg.mediaType === 'video' ? '[동영상]' : '[사진]'),
-            }
-          : r,
-      ),
-    );
-  }, []);
-
   const handleShareToRoom = (room: ChatRoom, log: DailyLog) => {
-    // 공유한 미디어를 해당 방의 메시지로 추가
     appendMessage(room.id, {
       id: `m-${Date.now()}`,
       imageUri: log.mediaType === 'video' ? log.thumbnailUri ?? log.uri : log.uri,
@@ -71,20 +45,21 @@ export function HomeScreen() {
       mine: true,
     });
     setShareTarget(null);
-    setSelected(null); // 상세 모달 닫기
-    setActiveRoomId(room.id); // 공유한 방으로 전환
-    setTab('chat'); // 채팅 화면으로 이동 (데스크탑은 우측에 그대로 보임)
+    setSelected(null);
+    setActiveRoomId(room.id);
+    setTab('chat');
   };
 
-  const handleSend = useCallback(
-    (roomId: string, text: string) => {
-      appendMessage(roomId, { id: `m-${Date.now()}`, text, mine: true });
-    },
-    [appendMessage],
-  );
+  const handleSend = (roomId: string, text: string) => {
+    appendMessage(roomId, { id: `m-${Date.now()}`, text, mine: true });
+  };
 
-  // 피드 영역(캘린더 + 상세 모달). 모달은 이 컨테이너 내부에 오버레이되어
-  // 데스크탑에서 우측 채팅 영역을 가리지 않는다.
+  const openLog = (log: DailyLog) => {
+    setTab('feed');
+    setSelected(log);
+  };
+
+  // ── 화면 조각 ────────────────────────────────────
   const Feed = (
     <View style={styles.feedArea}>
       <CalendarFeed logs={logs} onSelectLog={setSelected} />
@@ -99,12 +74,6 @@ export function HomeScreen() {
     </View>
   );
 
-  const Profile = (
-    <View style={styles.placeholder}>
-      <Text style={styles.placeholderTxt}>프로필 (준비 중)</Text>
-    </View>
-  );
-
   const Chat = (
     <ChatPanel
       rooms={rooms}
@@ -114,57 +83,73 @@ export function HomeScreen() {
     />
   );
 
-  const shareSheet = shareTarget && (
-    <ShareSheet
-      log={shareTarget}
-      rooms={rooms}
-      onClose={() => setShareTarget(null)}
-      onShareToRoom={handleShareToRoom}
-    />
+  const content = (forTab: AppTab) => {
+    switch (forTab) {
+      case 'feed':
+        return Feed;
+      case 'chat':
+        return Chat;
+      case 'friends':
+        return <FriendsScreen />;
+      case 'profile':
+        return <ProfileScreen onOpenLog={openLog} />;
+    }
+  };
+
+  const overlays = (
+    <>
+      {shareTarget && (
+        <ShareSheet
+          log={shareTarget}
+          rooms={rooms}
+          onClose={() => setShareTarget(null)}
+          onShareToRoom={handleShareToRoom}
+        />
+      )}
+      {showUpload && <UploadSheet onClose={() => setShowUpload(false)} />}
+    </>
   );
 
-  // ── 데스크탑: 상단 네비 + 탭별 콘텐츠 ────────────────
+  // ── 데스크탑 ─────────────────────────────────────
   if (isDesktop) {
     return (
       <View style={styles.root}>
-        <TopNav active={tab} onChange={setTab} />
+        <TopNav active={tab} onChange={setTab} onUpload={() => setShowUpload(true)} />
         <View style={styles.body}>
-          {tab === 'feed' && (
-            // 적용 예시 2: 좌측 60% 피드 / 우측 40% 채팅(반응창)
+          {tab === 'feed' ? (
             <View style={styles.desktopRow}>
               <View style={styles.feedCol}>{Feed}</View>
               <View style={styles.chatCol}>{Chat}</View>
             </View>
+          ) : (
+            content(tab)
           )}
-          {tab === 'chat' && Chat}
-          {tab === 'profile' && Profile}
         </View>
-        {shareSheet}
+        {overlays}
       </View>
     );
   }
 
-  // ── 모바일: 상단 로고바 + 콘텐츠 + 하단 탭 ───────────
+  // ── 모바일 ───────────────────────────────────────
   return (
     <View style={styles.root}>
-      <TopNav active={tab} onChange={setTab} showTabs={false} />
-      <View style={styles.body}>
-        {tab === 'feed' && Feed}
-        {tab === 'chat' && Chat}
-        {tab === 'profile' && Profile}
-      </View>
+      <TopNav
+        active={tab}
+        onChange={setTab}
+        onUpload={() => setShowUpload(true)}
+        showTabs={false}
+      />
+      <View style={styles.body}>{content(tab)}</View>
 
       <View style={[styles.tabBar, { paddingBottom: insets.bottom }]}>
-        {(['feed', 'chat', 'profile'] as AppTab[]).map((t) => (
+        {(['feed', 'chat', 'friends', 'profile'] as AppTab[]).map((t) => (
           <Pressable key={t} style={styles.tab} onPress={() => setTab(t)}>
-            <Text style={[styles.tabTxt, tab === t && styles.tabActive]}>
-              {t === 'feed' ? '피드' : t === 'chat' ? '채팅' : '프로필'}
-            </Text>
+            <Text style={[styles.tabTxt, tab === t && styles.tabActive]}>{TAB_LABELS[t]}</Text>
           </Pressable>
         ))}
       </View>
 
-      {shareSheet}
+      {overlays}
     </View>
   );
 }
@@ -185,6 +170,4 @@ const styles = StyleSheet.create({
   tab: { flex: 1, alignItems: 'center', paddingVertical: spacing(3) },
   tabTxt: { color: colors.textMuted, fontWeight: '600' },
   tabActive: { color: colors.primary },
-  placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  placeholderTxt: { color: colors.textMuted },
 });

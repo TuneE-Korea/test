@@ -1,5 +1,24 @@
 export type MediaType = 'image' | 'video';
 
+export type Visibility = 'public' | 'friends' | 'private';
+
+export interface User {
+  id: string;
+  /** 이메일 또는 학번 기반 로그인 식별자 */
+  email: string;
+  studentId?: string;
+  name: string;
+  avatarUri?: string;
+  bio?: string;
+}
+
+export type FriendStatus = 'none' | 'requested' | 'incoming' | 'friend';
+
+export interface Friend {
+  user: User;
+  status: FriendStatus;
+}
+
 export interface LogComment {
   id: string;
   author: string;
@@ -10,6 +29,7 @@ export interface LogComment {
 // 하나의 "일상 로그". 캘린더의 한 셀에 매핑된다.
 export interface DailyLog {
   id: string;
+  ownerId: string;
   /** 게시된 시각 (ISO). 캘린더 배치 및 "YYYY년 MM월 DD일 HH시 mm분" 표기에 사용 */
   takenAt: string;
   mediaType: MediaType;
@@ -18,7 +38,9 @@ export interface DailyLog {
   /** 동영상 썸네일(포스터) URL. 없으면 첫 프레임을 사용 */
   thumbnailUri?: string;
   caption?: string;
-  visibility: 'public' | 'friends' | 'private';
+  visibility: Visibility;
+  /** 클라이언트 압축 후 추정 용량(byte). 스토리지 쿼터 합산에 사용 */
+  sizeBytes: number;
   comments: LogComment[];
 }
 

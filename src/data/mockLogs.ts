@@ -1,7 +1,7 @@
-import { ChatRoom, DailyLog } from '../types';
+import { ChatRoom, DailyLog, User } from '../types';
 
 // 백엔드(MinIO Presigned URL) 연동 전까지 사용하는 목업 데이터.
-// 실제 연동 시 fetchLogsByMonth(year, month) 같은 API 호출로 대체하면 된다.
+// 실제 연동 시 fetchLogsByMonth / searchUsers 등 API 호출로 대체하면 된다.
 
 const sampleVideo =
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
@@ -9,9 +9,9 @@ const sampleVideo2 =
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
 
 const img = (seed: string) => `https://picsum.photos/seed/${seed}/600/600`;
+const avatar = (seed: string) => `https://i.pravatar.cc/150?u=${seed}`;
 
 function iso(year: number, month: number, day: number, h: number, m: number) {
-  // month: 1-12
   const mm = String(month).padStart(2, '0');
   const dd = String(day).padStart(2, '0');
   const hh = String(h).padStart(2, '0');
@@ -23,25 +23,55 @@ const now = new Date();
 const Y = now.getFullYear();
 const M = now.getMonth() + 1; // 1-12
 
-export const mockLogs: DailyLog[] = [
+// ── 유저 ────────────────────────────────────────────
+export const me: User = {
+  id: 'me',
+  email: 'xodbs1758@gmail.com',
+  studentId: '20211234',
+  name: '나',
+  avatarUri: avatar('me'),
+  bio: '일상을 기록합니다 ☕️',
+};
+
+export const mockUsers: User[] = [
+  { id: 'u-1', email: 'boss@univ.ac.kr', studentId: '20180001', name: '부장님', avatarUri: avatar('boss') },
+  { id: 'u-2', email: 'dev@univ.ac.kr', studentId: '20190002', name: '개발팀장', avatarUri: avatar('dev') },
+  { id: 'u-3', email: 'club@univ.ac.kr', studentId: '20211111', name: '동아리회장', avatarUri: avatar('club') },
+  { id: 'u-4', email: 'minji@univ.ac.kr', studentId: '20210123', name: '김민지', avatarUri: avatar('minji') },
+  { id: 'u-5', email: 'jihun@univ.ac.kr', studentId: '20200456', name: '이지훈', avatarUri: avatar('jihun') },
+  { id: 'u-6', email: 'sora@univ.ac.kr', studentId: '20220789', name: '박소라', avatarUri: avatar('sora') },
+];
+
+// 초기 친구 관계: 부장님/개발팀장/동아리회장은 친구, 김민지는 받은 요청(incoming)
+export const initialFriendStatus: Record<string, 'friend' | 'incoming'> = {
+  'u-1': 'friend',
+  'u-2': 'friend',
+  'u-3': 'friend',
+  'u-4': 'incoming',
+};
+
+// ── 로그 ────────────────────────────────────────────
+const KB = 1024;
+const MB = 1024 * KB;
+
+type RawLog = Omit<DailyLog, 'sizeBytes'> & { sizeBytes?: number };
+
+const rawLogs: RawLog[] = [
   {
     id: 'log-1',
+    ownerId: 'me',
     takenAt: iso(Y, M, 2, 9, 12),
     mediaType: 'image',
     uri: img('coffee'),
     caption: '아침 커피 한 잔',
     visibility: 'friends',
     comments: [
-      {
-        id: 'c1',
-        author: '부장님',
-        text: '좋은 아침!',
-        createdAt: iso(Y, M, 2, 9, 30),
-      },
+      { id: 'c1', author: '부장님', text: '좋은 아침!', createdAt: iso(Y, M, 2, 9, 30) },
     ],
   },
   {
     id: 'log-2',
+    ownerId: 'me',
     takenAt: iso(Y, M, 5, 18, 45),
     mediaType: 'video',
     uri: sampleVideo,
@@ -49,9 +79,11 @@ export const mockLogs: DailyLog[] = [
     caption: '퇴근길 노을',
     visibility: 'public',
     comments: [],
+    sizeBytes: 8 * MB,
   },
   {
     id: 'log-3',
+    ownerId: 'me',
     takenAt: iso(Y, M, 9, 13, 5),
     mediaType: 'image',
     uri: img('lunch'),
@@ -61,6 +93,7 @@ export const mockLogs: DailyLog[] = [
   },
   {
     id: 'log-4',
+    ownerId: 'me',
     takenAt: iso(Y, M, 14, 21, 30),
     mediaType: 'video',
     uri: sampleVideo2,
@@ -68,9 +101,11 @@ export const mockLogs: DailyLog[] = [
     caption: '야경 드라이브',
     visibility: 'private',
     comments: [],
+    sizeBytes: 12 * MB,
   },
   {
     id: 'log-5',
+    ownerId: 'me',
     takenAt: iso(Y, M, 17, 11, 0),
     mediaType: 'image',
     uri: img('mountain'),
@@ -80,6 +115,7 @@ export const mockLogs: DailyLog[] = [
   },
   {
     id: 'log-6',
+    ownerId: 'me',
     takenAt: iso(Y, M, 21, 8, 20),
     mediaType: 'image',
     uri: img('flower'),
@@ -89,6 +125,7 @@ export const mockLogs: DailyLog[] = [
   },
   {
     id: 'log-7',
+    ownerId: 'me',
     takenAt: iso(Y, M, 24, 19, 15),
     mediaType: 'video',
     uri: sampleVideo,
@@ -96,9 +133,11 @@ export const mockLogs: DailyLog[] = [
     caption: '저녁 모임',
     visibility: 'friends',
     comments: [],
+    sizeBytes: 6 * MB,
   },
   {
     id: 'log-8',
+    ownerId: 'me',
     takenAt: iso(Y, M, 28, 16, 40),
     mediaType: 'image',
     uri: img('cat'),
@@ -108,6 +147,13 @@ export const mockLogs: DailyLog[] = [
   },
 ];
 
+// sizeBytes 기본값(이미지 ~1.5MB) 주입
+export const mockLogs: DailyLog[] = rawLogs.map((l) => ({
+  ...l,
+  sizeBytes: l.sizeBytes ?? Math.round(1.5 * MB),
+}));
+
+// ── 채팅 ────────────────────────────────────────────
 export const mockChatRooms: ChatRoom[] = [
   {
     id: 'room-1',
@@ -141,3 +187,6 @@ export const mockChatRooms: ChatRoom[] = [
     ],
   },
 ];
+
+// 스토리지 쿼터(유저별 할당량). 저사양 온프레미스 정책 반영.
+export const QUOTA_LIMIT_BYTES = 200 * MB;
