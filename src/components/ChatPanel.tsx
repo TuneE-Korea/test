@@ -11,6 +11,7 @@ import {
 
 import { colors, radius, spacing } from '../theme';
 import { ChatMessage, ChatRoom } from '../types';
+import { NewChatModal } from './NewChatModal';
 
 interface Props {
   rooms: ChatRoom[];
@@ -27,6 +28,7 @@ interface Props {
  */
 export function ChatPanel({ rooms, activeId, onChangeActive, onSend }: Props) {
   const [draft, setDraft] = useState('');
+  const [showNew, setShowNew] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const activeRoom = rooms.find((r) => r.id === activeId) ?? rooms[0];
 
@@ -40,7 +42,12 @@ export function ChatPanel({ rooms, activeId, onChangeActive, onSend }: Props) {
 
   return (
     <View style={styles.root}>
-      <Text style={styles.header}>채팅</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.header}>채팅</Text>
+        <Pressable style={styles.newBtn} onPress={() => setShowNew(true)}>
+          <Text style={styles.newTxt}>＋ 새 채팅</Text>
+        </Pressable>
+      </View>
       <View style={styles.split}>
         <ScrollView style={styles.list}>
           {rooms.map((r) => (
@@ -92,6 +99,16 @@ export function ChatPanel({ rooms, activeId, onChangeActive, onSend }: Props) {
           </View>
         </View>
       </View>
+
+      {showNew && (
+        <NewChatModal
+          onClose={() => setShowNew(false)}
+          onCreated={(roomId) => {
+            setShowNew(false);
+            onChangeActive(roomId);
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -117,13 +134,22 @@ function Bubble({ message }: { message: ChatMessage }) {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  header: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '700',
-    padding: spacing(4),
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing(4),
+    paddingTop: spacing(4),
     paddingBottom: spacing(2),
   },
+  header: { color: colors.text, fontSize: 18, fontWeight: '700' },
+  newBtn: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing(3),
+    paddingVertical: spacing(2),
+  },
+  newTxt: { color: colors.primary, fontWeight: '700', fontSize: 13 },
   split: { flex: 1, flexDirection: 'row' },
   list: {
     width: '38%',

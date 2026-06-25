@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CalendarFeed } from '../components/CalendarFeed';
 import { ChatPanel } from '../components/ChatPanel';
+import { FeedView } from '../components/FeedView';
 import { MediaModal } from '../components/MediaModal';
 import { ShareSheet } from '../components/ShareSheet';
 import { AppTab, TopNav } from '../components/TopNav';
@@ -62,7 +62,7 @@ export function HomeScreen() {
   // ── 화면 조각 ────────────────────────────────────
   const Feed = (
     <View style={styles.feedArea}>
-      <CalendarFeed logs={logs} onSelectLog={setSelected} />
+      <FeedView logs={logs} onSelectLog={setSelected} />
       {selectedLive && (
         <MediaModal
           log={selectedLive}

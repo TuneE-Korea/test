@@ -69,6 +69,7 @@ interface AppState {
 
   // chat
   appendMessage: (roomId: string, msg: ChatMessage) => void;
+  createRoom: (memberUserIds: string[]) => string;
 
   // friends
   friendList: Friend[];
@@ -194,6 +195,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  // 1:1 또는 그룹 채팅방 생성. 멤버 이름으로 방 이름 구성.
+  const createRoom = useCallback((memberUserIds: string[]): string => {
+    const members = mockUsers.filter((u) => memberUserIds.includes(u.id));
+    const name =
+      members.length <= 1
+        ? members[0]?.name ?? '새 채팅'
+        : `${members[0].name} 외 ${members.length - 1}명`;
+    const id = `room-${Date.now()}`;
+    setRooms((prev) => [{ id, name, lastMessage: '새 채팅방이 생성되었어요', messages: [] }, ...prev]);
+    return id;
+  }, []);
+
   // ── 친구 ──────────────────────────────────────────
   const setFriendStatus = useCallback((userId: string, status: FriendStatus) => {
     setFriends((prev) => ({ ...prev, [userId]: status }));
@@ -265,6 +278,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addLog,
     addComment,
     appendMessage,
+    createRoom,
     friendList,
     incomingRequests,
     searchUsers,
