@@ -1,7 +1,7 @@
-import { useVideoPlayer, VideoView } from 'expo-video';
-import { Image, Text, View } from 'react-native';
+import { useVideoPlayer, VideoView } from "expo-video";
+import { Image, Text, View } from "react-native";
 
-type MediaType = 'image' | 'video';
+type MediaType = "image" | "video";
 
 interface Props {
   mediaType: MediaType;
@@ -13,7 +13,7 @@ interface Props {
    * thumbnail: 캘린더 셀 배경용. 동영상도 재생하지 않고 포스터 이미지만.
    * full: 모달용. 동영상은 재생, 이미지는 그대로.
    */
-  mode: 'thumbnail' | 'full';
+  mode: "thumbnail" | "full";
 }
 
 /**
@@ -24,28 +24,40 @@ interface Props {
  * FSD: DailyLog 같은 도메인 타입에 의존하지 않고 원시 값만 받으므로 shared/ui 에 둘 수 있다.
  */
 export function MediaView({ mediaType, uri, thumbnailUri, mode }: Props) {
-  if (mode === 'thumbnail') {
-    return <ThumbnailMedia mediaType={mediaType} uri={uri} thumbnailUri={thumbnailUri} />;
+  if (mode === "thumbnail") {
+    return (
+      <ThumbnailMedia
+        mediaType={mediaType}
+        uri={uri}
+        thumbnailUri={thumbnailUri}
+      />
+    );
   }
-  if (mediaType === 'video') {
+  if (mediaType === "video") {
     return <FullVideo uri={uri} />;
   }
-  return <Image source={{ uri }} className="h-full w-full" resizeMode="contain" />;
+  return (
+    <Image source={{ uri }} className="h-full w-full" resizeMode="contain" />
+  );
 }
 
 // 셀: 항상 정적 이미지. 동영상은 thumbnailUri 가 있을 때만 이미지로,
 // 없으면 회색 placeholder + 🎬 처리.
-function ThumbnailMedia({ mediaType, uri, thumbnailUri }: Omit<Props, 'mode'>) {
-  const poster = mediaType === 'image' ? uri : thumbnailUri;
+function ThumbnailMedia({ mediaType, uri, thumbnailUri }: Omit<Props, "mode">) {
+  const poster = mediaType === "image" ? uri : thumbnailUri;
   return (
     <View className="absolute inset-0 items-center justify-center bg-surfaceAlt">
       {poster ? (
-        <Image source={{ uri: poster }} className="h-full w-full" resizeMode="cover" />
+        <Image
+          source={{ uri: poster }}
+          className="h-full w-full"
+          resizeMode="cover"
+        />
       ) : (
         <Text className="text-[22px]">🎬</Text>
       )}
-      {mediaType === 'video' && (
-        <View className="absolute right-1.5 top-1.5 h-[26px] w-[26px] items-center justify-center rounded-pill bg-overlay">
+      {mediaType === "video" && (
+        <View className="absolute h-[26px] w-[26px] items-center justify-center rounded-pill bg-overlay">
           <Text className="ml-0.5 text-xs text-white">▶</Text>
         </View>
       )}
@@ -63,7 +75,7 @@ function FullVideo({ uri }: { uri: string }) {
   return (
     <VideoView
       player={player}
-      style={{ width: '100%', height: '100%' }}
+      style={{ width: "100%", height: "100%" }}
       contentFit="contain"
       nativeControls
       allowsFullscreen
