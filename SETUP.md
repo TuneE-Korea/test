@@ -139,8 +139,12 @@ module.exports = function (api) {
   };
 };
 ```
-
-### `metro.config.js`
+> ⚠️ `babel-preset-expo` 는 보통 템플릿에 포함돼 있지만, 없으면
+> `Cannot find module 'babel-preset-expo'` 에러가 납니다. 그땐:
+> ```bash
+> npm install -D babel-preset-expo
+> npx expo start -c      # 캐시 비우고 재시작
+> ```
 ```js
 const { getDefaultConfig } = require('expo/metro-config');
 const { withNativeWind } = require('nativewind/metro');
