@@ -140,10 +140,11 @@ module.exports = function (api) {
 };
 ```
 > ⚠️ `babel-preset-expo` 는 보통 템플릿에 포함돼 있지만, 없으면
-> `Cannot find module 'babel-preset-expo'` 에러가 납니다. 그땐:
+> `Cannot find module 'babel-preset-expo'` 에러가 납니다. 그땐 **`npx expo install`** 로
+> 설치하세요(`npm install` 로 하면 SDK 와 안 맞는 최신 버전이 깔려 "expected version" 경고가 뜸):
 > ```bash
-> npm install -D babel-preset-expo
-> npx expo start -c      # 캐시 비우고 재시작
+> npx expo install babel-preset-expo   # SDK 54 에 맞는 ~54.0.x 자동 선택
+> npx expo start -c                    # 캐시 비우고 재시작
 > ```
 ```js
 const { getDefaultConfig } = require('expo/metro-config');
