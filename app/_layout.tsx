@@ -6,7 +6,7 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { AppProviders } from '@/app/providers/AppProviders';
+import { AppProviders } from '@/shared/providers/AppProviders';
 import { useSessionStore } from '@/entities/session';
 import { colors } from '@/shared/config';
 
