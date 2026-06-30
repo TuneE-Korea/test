@@ -25,8 +25,15 @@ node -v   # Node 18+ (20 LTS 권장)
 npm -v
 ```
 
-> ⚠️ **`npm install -g expo-cli` 는 하지 마세요.** 전역 `expo-cli` 는 deprecated 입니다.
-> 모던 Expo 는 프로젝트 로컬 CLI 를 `npx expo ...` 로 호출합니다.
+> ⚠️ **`npm install -g expo-cli` 는 절대 하지 마세요.** 전역 `expo-cli` 는 deprecated 이고,
+> 설치돼 있으면 **`npx expo` 가 로컬 CLI 대신 이 구버전을 가로채** "Node +17 미지원 / SDK 버전을 못 읽음" 오류가 납니다.
+> 모던 Expo 는 `expo` 패키지에 **로컬 CLI 가 번들**돼 있어 `npx expo ...` 로 호출합니다.
+>
+> 이미 설치했다면 제거:
+> ```bash
+> npm uninstall -g expo-cli
+> npx expo --version   # 이제 프로젝트 로컬 CLI 가 응답하면 정상
+> ```
 
 ---
 
@@ -68,9 +75,19 @@ npm install cross-env
 npx expo install expo-router react-native-screens expo-linking expo-constants
 ```
 
+> ⚠️ **`react` / `react-dom` 을 직접 설치하지 마세요.** `create-expo-app` 이 SDK 에 맞는 버전(SDK 54 = **19.1.0**)을
+> 이미 넣어줍니다. `npm install react-dom` 처럼 버전 없이 설치하면 **최신(예: 19.2.7)** 이 깔려
+> `react`(19.1.0) 와 **버전이 어긋나 `ERESOLVE` 충돌**이 납니다. (둘은 **항상 동일 버전**이어야 함)
+> 꼭 다시 맞춰야 하면: `npx expo install react react-dom` (둘을 SDK 버전으로 동시 정렬)
+
 ---
 
 ## 3. NativeWind 설정
+
+> 📌 아래 **4개 파일은 템플릿에 없으니 루트에 직접 생성**해야 합니다:
+> `tailwind.config.js` · `global.css` · `metro.config.js` · `nativewind-env.d.ts`.
+> (`babel.config.js` 와 `tsconfig.json` 은 이미 있으니 **수정**만 하면 됩니다.)
+> `npx tailwindcss init` 으로 만들 수도 있지만 기본값이 NativeWind 용이 아니라, **직접 작성이 더 깔끔**합니다.
 
 ### `tailwind.config.js`
 > `content` 에 **`app/` 폴더 포함**(라우트), 그리고 디자인 토큰 정의.
@@ -278,9 +295,57 @@ npx expo export --platform web      # 웹 정적 번들 출력 (dist/)
 
 ---
 
+## 8. 트러블슈팅 (설치 오류)
+
+### ① `npm error code ERESOLVE` — react / react-dom 버전 불일치
+```
+npm error Could not resolve dependency:
+npm error peer react@"^19.2.7" from react-dom@19.2.7
+npm error Conflicting peer dependency: react@19.2.7
+```
+- **원인:** `react`(19.1.0) 와 `react-dom`(19.2.7) 버전이 어긋남. 둘은 **항상 같은 버전**이어야 함.
+- **해결:** `package.json` 에서 둘을 동일하게(SDK 54 = `19.1.0`) 맞춘 뒤 깨끗이 재설치.
+  ```bash
+  # package.json: "react": "19.1.0", "react-dom": "19.1.0"
+  rmdir /s /q node_modules        # mac/linux: rm -rf node_modules
+  del package-lock.json           # mac/linux: rm -f package-lock.json
+  npm install
+  npm ls react react-dom          # 둘 다 19.1.0 이면 정상
+  ```
+- ⚠️ `--legacy-peer-deps` / `--force` 로 넘기지 말 것. 이건 무시해도 되는 경고가 아니라 **실제 버전 불일치**라 런타임이 깨질 수 있음.
+
+### ② `legacy expo-cli does not support Node +17` / `couldn't resolve the Expo SDK version`
+- **원인:** 전역 `expo-cli`(구버전)가 설치돼 있어 `npx expo` 를 가로챔.
+- **해결:**
+  ```bash
+  npm uninstall -g expo-cli
+  ```
+  그 뒤 `node_modules` 가 설치돼 있어야 로컬 CLI 가 동작함(닭-달걀 주의 → ① 먼저 설치 완료).
+
+### ③ NativeWind 스타일이 웹에서 안 먹음 / CSS 0바이트
+- **원인:** Tailwind v4 설치, 또는 `global.css` 를 라우트 파일에서 import.
+- **해결:**
+  ```bash
+  npm ls tailwindcss              # 4.x 면 충돌
+  npm uninstall tailwindcss && npm install -D tailwindcss@^3.4.0
+  ```
+  그리고 `global.css` 는 **정적 모듈(AppProviders 등)** 에서 import (3번 참고).
+
+### 재설치가 꼬일 때 공통 클린업 (Windows)
+```bash
+rmdir /s /q node_modules
+del package-lock.json
+npm cache verify
+npm install
+```
+
+---
+
 ## 자주 겪는 함정 체크리스트
 
-- [ ] 전역 `expo-cli` 설치하지 않기 (deprecated)
+- [ ] 전역 `expo-cli` 설치하지 않기 (있으면 `npm uninstall -g expo-cli`)
+- [ ] `react` / `react-dom` 직접 설치 금지 — 둘은 **항상 같은 버전**(SDK54 = 19.1.0)
+- [ ] 재설치 시 `node_modules` + `package-lock.json` **함께 삭제** 후 `npm install`
 - [ ] `tailwindcss@^3.4` 로 버전 고정 (v4 는 NativeWind v4 와 비호환)
 - [ ] `tailwind.config.js` 의 `content` 에 **`app/`** 포함
 - [ ] `global.css` 는 **라우트 파일이 아닌 정적 모듈**에서 import
