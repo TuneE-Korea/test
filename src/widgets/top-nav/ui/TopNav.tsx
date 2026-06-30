@@ -18,6 +18,8 @@ interface Props {
   unreadCount?: number;
   /** false 면 탭을 숨기고 로고만 표시 (모바일: 탭은 하단 바가 담당) */
   showTabs?: boolean;
+  /** 표시할 탭 목록 (기본: 전체). 데스크탑은 채팅을 사이드바로 두고 제외 가능 */
+  tabs?: AppTab[];
 }
 
 /** 상단 네비게이션 바: 좌측 로고 + 우측 탭 + 업로드/알림 버튼. */
@@ -28,8 +30,10 @@ export function TopNav({
   onBell,
   unreadCount = 0,
   showTabs = true,
+  tabs,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const items = tabs ? TABS.filter((t) => tabs.includes(t.key)) : TABS;
   return (
     <View
       className="flex-row items-center justify-between border-b border-border bg-surface px-4"
@@ -45,7 +49,7 @@ export function TopNav({
       <View className="flex-row items-center gap-2">
         {showTabs && (
           <View className="flex-row gap-1">
-            {TABS.map((t) => {
+            {items.map((t) => {
               const on = active === t.key;
               return (
                 <Pressable

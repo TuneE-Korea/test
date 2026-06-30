@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   // NativeWind가 className 을 스캔할 파일 범위. 여기 없는 경로의 클래스는 빌드에서 제거된다.
-  content: ['./App.tsx', './src/**/*.{ts,tsx}'],
+  content: ['./app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
   // RN 환경에 맞춘 Tailwind 동작을 주입하는 NativeWind 프리셋
   presets: [require('nativewind/preset')],
   theme: {

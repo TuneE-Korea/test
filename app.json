@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "daylog",
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
@@ -24,6 +25,7 @@
       "output": "single"
     },
     "plugins": [
+      "expo-router",
       [
         "expo-image-picker",
         {
