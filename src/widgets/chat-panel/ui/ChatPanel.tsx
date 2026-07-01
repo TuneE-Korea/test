@@ -5,6 +5,7 @@ import { useChatStore, type ChatMessage } from '@/entities/chat-room';
 import { NewChatModal } from '@/features/create-room';
 import { useSendMessage } from '@/features/send-message';
 import { colors } from '@/shared/config';
+import { useBreakpoint } from '@/shared/lib';
 
 // 온라인 여부 흉내 (방 id 기반 안정적 값)
 function isOnline(id: string) {
@@ -16,6 +17,7 @@ function isOnline(id: string) {
  * - 방 목록/대화/입력을 스스로 관리(chat 스토어 + send-message·create-room feature)
  */
 export function ChatPanel() {
+  const { isDesktop } = useBreakpoint();
   const rooms = useChatStore((s) => s.rooms);
   const activeId = useChatStore((s) => s.activeRoomId);
   const setActive = useChatStore((s) => s.setActiveRoom);
@@ -23,6 +25,8 @@ export function ChatPanel() {
 
   const [draft, setDraft] = useState('');
   const [showNew, setShowNew] = useState(false);
+  // 모바일에서는 목록/대화를 한 화면씩 전환(데스크탑은 항상 둘 다 표시)
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
   const scrollRef = useRef<ScrollView>(null);
   const activeRoom = rooms.find((r) => r.id === activeId) ?? rooms[0];
 
@@ -34,88 +38,115 @@ export function ChatPanel() {
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   };
 
+  const openRoom = (id: string) => {
+    setActive(id);
+    if (!isDesktop) setMobileView('chat');
+  };
+
+  const showList = isDesktop || mobileView === 'list';
+  const showConversation = isDesktop || mobileView === 'chat';
+
   return (
     <View className="flex-1 bg-bg">
       <View className="flex-row items-center justify-between px-4 pb-2 pt-4">
-        <Text className="text-lg font-bold text-text">채팅</Text>
-        <Pressable className="rounded-pill bg-primarySoft px-3 py-2" onPress={() => setShowNew(true)}>
-          <Text className="text-[13px] font-bold text-primary">＋ 새 채팅</Text>
-        </Pressable>
+        {!isDesktop && mobileView === 'chat' ? (
+          <Pressable
+            className="flex-row items-center gap-1"
+            onPress={() => setMobileView('list')}
+            hitSlop={8}
+          >
+            <Text className="text-xl text-text">‹</Text>
+            <Text className="text-lg font-bold text-text">{activeRoom?.name}</Text>
+          </Pressable>
+        ) : (
+          <Text className="text-lg font-bold text-text">채팅</Text>
+        )}
+        {(isDesktop || mobileView === 'list') && (
+          <Pressable className="rounded-pill bg-primarySoft px-3 py-2" onPress={() => setShowNew(true)}>
+            <Text className="text-[13px] font-bold text-primary">＋ 새 채팅</Text>
+          </Pressable>
+        )}
       </View>
 
       <View className="flex-1 flex-row">
         {/* 방 목록 */}
-        <ScrollView className="w-[38%] border-r border-border">
-          {rooms.map((r) => (
-            <Pressable
-              key={r.id}
-              className={`flex-row items-center gap-3 p-3 ${activeId === r.id ? 'bg-surfaceAlt' : ''}`}
-              onPress={() => setActive(r.id)}
-            >
-              <View className="h-[38px] w-[38px] items-center justify-center rounded-pill bg-primarySoft">
-                <Text className="font-bold text-primary">{r.name.slice(0, 1)}</Text>
-                {isOnline(r.id) && (
-                  <View className="absolute -bottom-px -right-px h-[11px] w-[11px] rounded-pill border-2 border-bg bg-[#22c55e]" />
-                )}
-              </View>
-              <View className="flex-1">
-                <Text className="font-semibold text-text">{r.name}</Text>
-                <Text numberOfLines={1} className="text-xs text-textMuted">
-                  {typingRoomId === r.id ? '입력 중…' : r.lastMessage}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-        </ScrollView>
+        {showList && (
+          <ScrollView className={isDesktop ? 'w-[38%] border-r border-border' : 'flex-1'}>
+            {rooms.map((r) => (
+              <Pressable
+                key={r.id}
+                className={`flex-row items-center gap-3 p-3 ${activeId === r.id ? 'bg-surfaceAlt' : ''}`}
+                onPress={() => openRoom(r.id)}
+              >
+                <View className="h-[38px] w-[38px] items-center justify-center rounded-pill bg-primarySoft">
+                  <Text className="font-bold text-primary">{r.name.slice(0, 1)}</Text>
+                  {isOnline(r.id) && (
+                    <View className="absolute -bottom-px -right-px h-[11px] w-[11px] rounded-pill border-2 border-bg bg-[#22c55e]" />
+                  )}
+                </View>
+                <View className="flex-1">
+                  <Text className="font-semibold text-text">{r.name}</Text>
+                  <Text numberOfLines={1} className="text-xs text-textMuted">
+                    {typingRoomId === r.id ? '입력 중…' : r.lastMessage}
+                  </Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
 
         {/* 대화 */}
-        <View className="flex-1 p-3">
-          <View className="mb-2 flex-row items-center justify-between border-b border-border pb-2">
-            <Text className="text-[15px] font-bold text-text">{activeRoom?.name}</Text>
-            {activeRoom && (
-              <View className="flex-row items-center gap-1.5">
-                <View
-                  className={`h-2 w-2 rounded-pill ${isOnline(activeRoom.id) ? 'bg-[#22c55e]' : 'bg-textMuted'}`}
-                />
-                <Text className="text-xs text-textMuted">
-                  {isOnline(activeRoom.id) ? '온라인' : '오프라인'}
-                </Text>
+        {showConversation && (
+          <View className="flex-1 p-3">
+            {isDesktop && (
+              <View className="mb-2 flex-row items-center justify-between border-b border-border pb-2">
+                <Text className="text-[15px] font-bold text-text">{activeRoom?.name}</Text>
+                {activeRoom && (
+                  <View className="flex-row items-center gap-1.5">
+                    <View
+                      className={`h-2 w-2 rounded-pill ${isOnline(activeRoom.id) ? 'bg-[#22c55e]' : 'bg-textMuted'}`}
+                    />
+                    <Text className="text-xs text-textMuted">
+                      {isOnline(activeRoom.id) ? '온라인' : '오프라인'}
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
-          </View>
 
-          <ScrollView
-            ref={scrollRef}
-            className="flex-1"
-            contentContainerStyle={{ justifyContent: 'flex-end', flexGrow: 1, gap: 8 }}
-            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
-          >
-            {activeRoom?.messages.map((m) => (
-              <Bubble key={m.id} message={m} />
-            ))}
-            {typingRoomId === activeRoom?.id && (
-              <View className="self-start rounded-md bg-surfaceAlt px-3 py-2">
-                <Text className="text-[13px] italic text-textMuted">상대가 입력 중…</Text>
-              </View>
-            )}
-          </ScrollView>
+            <ScrollView
+              ref={scrollRef}
+              className="flex-1"
+              contentContainerStyle={{ justifyContent: 'flex-end', flexGrow: 1, gap: 8 }}
+              onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+            >
+              {activeRoom?.messages.map((m) => (
+                <Bubble key={m.id} message={m} />
+              ))}
+              {typingRoomId === activeRoom?.id && (
+                <View className="self-start rounded-md bg-surfaceAlt px-3 py-2">
+                  <Text className="text-[13px] italic text-textMuted">상대가 입력 중…</Text>
+                </View>
+              )}
+            </ScrollView>
 
-          <View className="mt-2 flex-row gap-2">
-            <TextInput
-              className="flex-1 rounded-pill border border-border bg-surfaceAlt px-4 py-2 text-text"
-              value={draft}
-              onChangeText={setDraft}
-              placeholder="메시지를 입력하세요…"
-              placeholderTextColor={colors.textMuted}
-              onSubmitEditing={submit}
-              returnKeyType="send"
-              blurOnSubmit={false}
-            />
-            <Pressable className="justify-center rounded-pill bg-primary px-4" onPress={submit}>
-              <Text className="font-bold text-white">전송</Text>
-            </Pressable>
+            <View className="mt-2 flex-row gap-2">
+              <TextInput
+                className="flex-1 rounded-pill border border-border bg-surfaceAlt px-4 py-2 text-text"
+                value={draft}
+                onChangeText={setDraft}
+                placeholder="메시지를 입력하세요…"
+                placeholderTextColor={colors.textMuted}
+                onSubmitEditing={submit}
+                returnKeyType="send"
+                blurOnSubmit={false}
+              />
+              <Pressable className="justify-center rounded-pill bg-primary px-4" onPress={submit}>
+                <Text className="font-bold text-white">전송</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        )}
       </View>
 
       {showNew && (
@@ -123,7 +154,7 @@ export function ChatPanel() {
           onClose={() => setShowNew(false)}
           onCreated={(roomId) => {
             setShowNew(false);
-            setActive(roomId);
+            openRoom(roomId);
           }}
         />
       )}
